@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -50,7 +50,6 @@ export default function PropertySearch() {
   const [listView, setListView] = useState(true)
   const [sortOrder, setSortOrder] = useState("price-asc")
   const [properties, setProperties] = useState<Property[]>([])
-  const [, setSelectedProperty] = useState<Property | null>(null)
   const [favorites, setFavorites] = useState<number[]>([])
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
@@ -116,7 +115,7 @@ export default function PropertySearch() {
   })
 
   const toggleFavorite = (propertyId: number) => {
-    setFavorites(prevFavorites => 
+    setFavorites(prevFavorites =>
       prevFavorites.includes(propertyId)
         ? prevFavorites.filter(id => id !== propertyId)
         : [...prevFavorites, propertyId]
@@ -271,7 +270,7 @@ export default function PropertySearch() {
                       <div className="flex space-x-2">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button variant="outline" onClick={() => setSelectedProperty(property)}>View Details</Button>
+                            <Button variant="outline">View Details</Button>
                           </DialogTrigger>
                           <DialogContent className="sm:max-w-[625px]">
                             <DialogHeader>
@@ -324,7 +323,6 @@ export default function PropertySearch() {
                                 <h4 className="font-bold mb-2">Property Analysis</h4>
                                 <div className="flex justify-between">
                                   <span>Idealista Score:</span>
-                                  
                                   <span>{property.idealista_score}/10</span>
                                 </div>
                                 <div className="flex justify-between">
