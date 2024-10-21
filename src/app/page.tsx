@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { createClient } from "@supabase/supabase-js"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
@@ -13,9 +13,7 @@ import { Slider } from "@/components/ui/slider"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { MapPin, DollarSign, BedDouble, Bath, Star, Coffee, Bus, Building, ArrowUpDown } from "lucide-react"
-
-import 'mapbox-gl/dist/mapbox-gl.css';
+import { MapPin, DollarSign, BedDouble, Bath, Star, Coffee, Bus, Building } from "lucide-react"
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -23,57 +21,69 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// Initialize Mapbox
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN!
 
-export default function Component() {
-  const [listView, setListView] = useState(false)
+export default function PropertySearch() {
+  const [listView, setListView] = useState(true)
   const [sortOrder, setSortOrder] = useState("price-asc")
   const [properties, setProperties] = useState([])
   const [selectedProperty, setSelectedProperty] = useState(null)
-  const [map, setMap] = useState(null)
+  const mapContainer = useRef(null)
+  const map = useRef(null)
 
   useEffect(() => {
     // Fetch properties from Supabase
     const fetchProperties = async () => {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-      if (error) console.error('Error fetching properties:', error)
-      else setProperties(data)
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('*')
+        if (error) throw error
+        setProperties(data)
+      } catch (error) {
+        console.error('Error fetching properties:', error)
+      }
     }
 
     fetchProperties()
-
-    // Initialize Mapbox map
-    const mapInstance = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/streets-v11',
-      center: [-74.5, 40], // Default center
-      zoom: 9
-    })
-
-    setMap(mapInstance)
-
-    return () => mapInstance.remove()
   }, [])
 
   useEffect(() => {
-    if (map && properties.length > 0) {
-      // Add markers for each property
-      properties.forEach(property => {
-        new mapboxgl.Marker()
-          .setLngLat([property.longitude, property.latitude])
-          .addTo(map)
+    if (!listView && !map.current && mapContainer.current) {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: [-74.5, 40], // Default center
+        zoom: 9
       })
 
-      // Fit map to property bounds
-      const bounds = new mapboxgl.LngLatBounds()
-      properties.forEach(property => {
-        bounds.extend([property.longitude, property.latitude])
+      map.current.on('load', () => {
+        if (properties.length > 0) {
+          // Add markers for each property
+          properties.forEach(property => {
+            new mapboxgl.Marker()
+              .setLngLat([property.longitude, property.latitude])
+              .addTo(map.current)
+          })
+
+          // Fit map to property bounds
+          const bounds = new mapboxgl.LngLatBounds()
+          properties.forEach(property => {
+            bounds.extend([property.longitude, property.latitude])
+          })
+          map.current.fitBounds(bounds, { padding: 50 })
+        }
       })
-      map.fitBounds(bounds, { padding: 50 })
     }
-  }, [map, properties])
+
+    return () => {
+      if (map.current) {
+        map.current.remove()
+        map.current = null
+      }
+    }
+  }, [listView, properties])
 
   const sortedProperties = [...properties].sort((a, b) => {
     if (sortOrder === "price-asc") return a.price - b.price
@@ -226,9 +236,9 @@ export default function Component() {
                               Analysis
                             </Label>
                             <div className="col-span-3">
-                              Idealista: {property.idealistaScore}/10
+                              Idealista: {property.idealista_score}/10
                               <br />
-                              Habitaclia: {property.habitacliaScore}/10
+                              Habitaclia: {property.habitaclia_score}/10
                             </div>
                           </div>
                         </div>
@@ -239,7 +249,7 @@ export default function Component() {
               ))}
             </div>
           ) : (
-            <div id="map" className="w-full h-[calc(100vh-200px)]" />
+            <div ref={mapContainer} className="w-full h-[calc(100vh-200px)]" />
           )}
         </div>
       </div>
